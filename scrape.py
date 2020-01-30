@@ -2,7 +2,6 @@
 # Zach Pomper, 2019
 
 from lxml import html
-import traceback
 import requests
 from time import sleep
 import json
@@ -39,8 +38,7 @@ def parse(ticker):
         summary_data.update({table_key:table_value})
     summary_data.update({'ticker':ticker,'url':url})
     return summary_data
-  except Exception as e:
-    traceback.print_exc()
+  except:
     return {"eror":"Failed to parse json response"}
 
 def runticker(ticker):
