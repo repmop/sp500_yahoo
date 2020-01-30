@@ -18,7 +18,7 @@ def parse(ticker):
   response = requests.get(url, verify=False)
   sleep(4)
   parser = html.fromstring(response.text)
-  summary_table = parser.xpath('//tr[contains(@data-reactid,"43")]')
+  summary_table = parser.xpath('//tr[contains(@data-reactid,"42")]')
   summary_data = OrderedDict()
   other_details_json_link = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/{0}?formatted=true&lang=en-US&region=US&modules=summaryProfile%2CfinancialData%2CrecommendationTrend%2CupgradeDowngradeHistory%2Cearnings%2CdefaultKeyStatistics%2CcalendarEvents&corsDomain=finance.yahoo.com".format(ticker)
   summary_json_response = requests.get(other_details_json_link)
@@ -29,13 +29,9 @@ def parse(ticker):
       raw_table_key = table_data.xpath('.//td[contains(@class,"Ta(start)")]//text()')
       raw_table_value = table_data.xpath('.//td[contains(@class,"Ta(end)")]//text()')
       table_key = ''.join(raw_table_key).strip()
-      table_value = ''.join(raw_table_value).strip()
-      if ("N/A" in table_value):
-        new_val = re.sub("N|A|/", "",table_value)
-        summary_data.update({table_key:new_val})
-        print(new_val)
-      else:
-        summary_data.update({table_key:table_value})
+      if (len(raw_table_value) == 0):
+        continue
+      summary_data.update({table_key:raw_table_value[0]})
     summary_data.update({'ticker':ticker,'url':url})
     return summary_data
   except:
@@ -49,7 +45,8 @@ def runticker(ticker):
     json.dump(scraped_data,fp,indent = 4)
   d = None
   try:
-    d = {scraped_data['ticker']: scraped_data['Past 5 Years (per annum)']}
+    print(scraped_data)
+    d = {scraped_data['ticker']: scraped_data['Next 5 Years (per annum)']}
   except:
     pass
   return d
