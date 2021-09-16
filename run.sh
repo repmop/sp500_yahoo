@@ -1,5 +1,5 @@
 trap ' ' INT
-[[ ":$PATH:" != *":`python2.7 -m site --user-base`/bin:"* ]] && PATH="`python2.7 -m site --user-base`/bin:${PATH}"
+[[ ":$PATH:" != *":`python3.6 -m site --user-base`/bin:"* ]] && PATH="`python3.6 -m site --user-base`/bin:${PATH}"
 source venv/bin/activate
 python scrape.py
 deactivate
