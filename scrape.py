@@ -14,37 +14,33 @@ import urllib3
 import aiohttp
 import asyncio
 
+
+class TickerInfo:
+    def __init__(self, ticker, url):
+        self.ticker = ticker
+        self.url = url
+        self.table = {}
+
 def url_gen(ticker):
   return "https://finance.yahoo.com/quote/%s/analysis?p=%s"%(ticker,ticker)
 
 def parse(retd):
   ticker, response = retd['ticker'], retd['response']
-  url = url_gen(ticker)
   parser = html.fromstring(response)
-  # The number 42 here is actually a regex that matches the correct table,
-  # which has an ID between 420 and 430. I was at first concerned that
-  # this had changed over time, but it doesn't seem to have done, thankfully.
-  summary_table = parser.xpath('//tr[contains(@data-reactid,"42")]')
-  summary_data = OrderedDict()
-  # print(summary_table)
-  # print(summary_data)
-  try:
-    for table_data in summary_table:
-      raw_table_key = table_data.xpath('.//td[contains(@class,"Ta(start)")]//text()')
-      raw_table_value = table_data.xpath('.//td[contains(@class,"Ta(end)")]//text()')
-      table_key = ''.join(raw_table_key).strip()
-      table_value = ''.join(raw_table_value).strip()
-      if ("N/A" in table_value):
-        new_val = re.sub("N|A|/", "",table_value)
-        summary_data.update({table_key:new_val})
-        # print(new_val, ticker)
-      else:
-        summary_data.update({table_key:table_value})
-    summary_data.update({'ticker':ticker,'url':url})
-    return summary_data
-  except:
-    print ("Failed to parse json response")
-    return {"error":"Failed to parse json response"}
+  response = parser.text_content()
+  url = url_gen(ticker)
+  exp = r'(?:Next 5 Years \(per annum\))([0-9\.-]+%)'
+  matches = re.findall(exp, response)
+
+  ret = TickerInfo(ticker, url)
+  if len(matches) > 0:
+    ret.table.update({'Next 5 Years (per annum)':matches[0]})
+  else:
+    ret.table.update({'Next 5 Years (per annum)':""})
+  return ret
+
+
+
 
 async def fetch(url, ticker, session):
     async with session.get(url, headers={'Connection': 'keep-alive'}) as response:
@@ -91,9 +87,8 @@ def async_agg():
 
   for retd in retds:
     scraped_data = parse(retd)
-    # print (scraped_data)
     try:
-      d = {scraped_data['ticker']: scraped_data['Next 5 Years (per annum)']}
+      d = {scraped_data.ticker: scraped_data.table['Next 5 Years (per annum)']}
       aggregate_data.update(d)
     except:
       pass
@@ -102,4 +97,4 @@ def async_agg():
 if __name__=="__main__":
   aggregate_data = async_agg()
   with open('aggregate_data.json','w') as fp:
-    json.dump(aggregate_data,fp,indent = 4)
+    json.dump(aggregate_data,fp,indent = 4, sort_keys=True)
